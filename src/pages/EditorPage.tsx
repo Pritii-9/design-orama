@@ -220,36 +220,34 @@ export default function EditorPage() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar - Furniture palette */}
-        <div className="w-64 border-r border-border bg-card shadow-soft flex flex-col">
-          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left sidebar - Furniture palette */}
+          <div className="w-64 border-r border-border bg-card shadow-soft flex flex-col">
             <FurniturePalette onAddWall={addWall} onAddRoom={addRoom} />
-          </DndContext>
-          
-          <div className="p-4 border-t border-border">
-            <UploadPlan onImageUploaded={setBackgroundImage} />
-          </div>
-        </div>
-
-        {/* Center - Canvas and 3D viewer */}
-        <div className="flex-1 flex flex-col">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <div className="border-b border-border bg-card px-4">
-              <TabsList className="grid w-fit grid-cols-2">
-                <TabsTrigger value="2d" className="flex items-center gap-2">
-                  <Grid3X3 className="w-4 h-4" />
-                  2D Editor
-                </TabsTrigger>
-                <TabsTrigger value="3d" className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
-                  3D Preview
-                </TabsTrigger>
-              </TabsList>
+            
+            <div className="p-4 border-t border-border">
+              <UploadPlan onImageUploaded={setBackgroundImage} />
             </div>
+          </div>
 
-            <TabsContent value="2d" className="flex-1 p-4 m-0">
-              <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          {/* Center - Canvas and 3D viewer */}
+          <div className="flex-1 flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+              <div className="border-b border-border bg-card px-4">
+                <TabsList className="grid w-fit grid-cols-2">
+                  <TabsTrigger value="2d" className="flex items-center gap-2">
+                    <Grid3X3 className="w-4 h-4" />
+                    2D Editor
+                  </TabsTrigger>
+                  <TabsTrigger value="3d" className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    3D Preview
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="2d" className="flex-1 p-4 m-0">
                 <Canvas2D
                   width={CANVAS_WIDTH}
                   height={CANVAS_HEIGHT}
@@ -261,135 +259,136 @@ export default function EditorPage() {
                   onElementUpdate={updateElement}
                   onElementAdd={addElement}
                 />
-                <DragOverlay>
-                  {/* Drag overlay content if needed */}
-                </DragOverlay>
-              </DndContext>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="3d" className="flex-1 p-4 m-0">
-              <Viewer3D
-                elements={floorPlan.elements}
-                width={CANVAS_WIDTH}
-                height={CANVAS_HEIGHT}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
+              <TabsContent value="3d" className="flex-1 p-4 m-0">
+                <Viewer3D
+                  elements={floorPlan.elements}
+                  width={CANVAS_WIDTH}
+                  height={CANVAS_HEIGHT}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
 
-        {/* Right sidebar - Properties */}
-        <div className="w-64 border-l border-border bg-card shadow-soft overflow-y-auto">
-          <Card className="border-0 shadow-none">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Properties
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {selectedElement ? (
-                <>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Name</label>
-                    <Input
-                      value={selectedElement.name || ''}
-                      onChange={(e) => updateElement(selectedElement.id, { name: e.target.value })}
-                      placeholder="Element name"
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
+          {/* Right sidebar - Properties */}
+          <div className="w-64 border-l border-border bg-card shadow-soft overflow-y-auto">
+            <Card className="border-0 shadow-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Properties
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {selectedElement ? (
+                  <>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">X</label>
+                      <label className="text-sm font-medium text-muted-foreground">Name</label>
                       <Input
-                        type="number"
-                        value={Math.round(selectedElement.x)}
-                        onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                        value={selectedElement.name || ''}
+                        onChange={(e) => updateElement(selectedElement.id, { name: e.target.value })}
+                        placeholder="Element name"
                         className="mt-1"
                       />
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Y</label>
-                      <Input
-                        type="number"
-                        value={Math.round(selectedElement.y)}
-                        onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
-                        className="mt-1"
-                      />
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">X</label>
+                        <Input
+                          type="number"
+                          value={Math.round(selectedElement.x)}
+                          onChange={(e) => updateElement(selectedElement.id, { x: parseInt(e.target.value) || 0 })}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Y</label>
+                        <Input
+                          type="number"
+                          value={Math.round(selectedElement.y)}
+                          onChange={(e) => updateElement(selectedElement.id, { y: parseInt(e.target.value) || 0 })}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Width</label>
-                      <Input
-                        type="number"
-                        value={Math.round(selectedElement.width)}
-                        onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 1 })}
-                        className="mt-1"
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Width</label>
+                        <Input
+                          type="number"
+                          value={Math.round(selectedElement.width)}
+                          onChange={(e) => updateElement(selectedElement.id, { width: parseInt(e.target.value) || 1 })}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Height</label>
+                        <Input
+                          type="number"
+                          value={Math.round(selectedElement.height)}
+                          onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 1 })}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Height</label>
-                      <Input
-                        type="number"
-                        value={Math.round(selectedElement.height)}
-                        onChange={(e) => updateElement(selectedElement.id, { height: parseInt(e.target.value) || 1 })}
-                        className="mt-1"
-                      />
+
+                    <div className="pt-4 border-t border-border">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteElement(selectedElement.id)}
+                        className="w-full"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete Element
+                      </Button>
                     </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                      <Settings className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Select an element to edit its properties
+                    </p>
                   </div>
+                )}
 
-                  <div className="pt-4 border-t border-border">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteElement(selectedElement.id)}
-                      className="w-full"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete Element
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                    <Settings className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Select an element to edit its properties
-                  </p>
-                </div>
-              )}
-
-              {/* Floor plan stats */}
-              <div className="pt-4 border-t border-border">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Floor Plan Stats</h3>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span>Elements:</span>
-                    <span>{floorPlan.elements.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Walls:</span>
-                    <span>{floorPlan.elements.filter(el => el.type === 'wall').length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Furniture:</span>
-                    <span>{floorPlan.elements.filter(el => el.type === 'furniture').length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Rooms:</span>
-                    <span>{floorPlan.elements.filter(el => el.type === 'room').length}</span>
+                {/* Floor plan stats */}
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Floor Plan Stats</h3>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span>Elements:</span>
+                      <span>{floorPlan.elements.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Walls:</span>
+                      <span>{floorPlan.elements.filter(el => el.type === 'wall').length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Furniture:</span>
+                      <span>{floorPlan.elements.filter(el => el.type === 'furniture').length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Rooms:</span>
+                      <span>{floorPlan.elements.filter(el => el.type === 'room').length}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+        
+        <DragOverlay>
+          {/* Drag overlay content if needed */}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
