@@ -14,6 +14,11 @@ const api = axios.create({
 
 // Mock local storage implementation for now
 class FloorPlanAPI {
+  // Upload plan image/PDF  
+  async uploadImage(file: File): Promise<UploadResponse> {
+    return this.uploadPlan(file);
+  }
+
   // Upload plan image/PDF
   async uploadPlan(file: File): Promise<UploadResponse> {
     try {

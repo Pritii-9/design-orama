@@ -1,14 +1,32 @@
 import { useRef, useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Line, Circle, Text } from 'react-konva';
+import { Stage, Layer, Rect, Line, Circle, Text, Image as KonvaImage } from 'react-konva';
 import { useDroppable } from '@dnd-kit/core';
 import { FloorPlanElement } from '@/types/floorplan';
 import Konva from 'konva';
+import useImage from 'use-image';
+
+const BackgroundImage = ({ src, width, height }: { src: string; width: number; height: number }) => {
+  const [image] = useImage(src);
+  
+  if (!image) return null;
+  
+  return (
+    <KonvaImage
+      image={image}
+      width={width}
+      height={height}
+      opacity={0.5}
+    />
+  );
+};
 
 interface Canvas2DProps {
   width: number;
   height: number;
   elements: FloorPlanElement[];
   selectedId: string | null;
+  backgroundImage?: string | null;
+  showGrid?: boolean;
   onElementSelect: (id: string | null) => void;
   onElementUpdate: (id: string, updates: Partial<FloorPlanElement>) => void;
   onElementAdd: (element: Omit<FloorPlanElement, 'id'>) => void;
@@ -19,6 +37,8 @@ export const Canvas2D = ({
   height,
   elements,
   selectedId,
+  backgroundImage,
+  showGrid = true,
   onElementSelect,
   onElementUpdate,
   onElementAdd,
@@ -34,36 +54,36 @@ export const Canvas2D = ({
   // Grid size
   const gridSize = 20;
 
-  // Generate grid lines
   const generateGrid = () => {
+    if (!showGrid) return [];
+    
+    const gridSize = 20;
     const lines = [];
-    const canvasWidth = width * stageScale;
-    const canvasHeight = height * stageScale;
-
-    // Vertical lines
-    for (let i = 0; i <= canvasWidth / gridSize; i++) {
+    
+    for (let i = 0; i <= width; i += gridSize) {
       lines.push(
         <Line
           key={`v-${i}`}
-          points={[i * gridSize, 0, i * gridSize, canvasHeight]}
-          stroke="hsl(var(--canvas-grid))"
+          points={[i, 0, i, height]}
+          stroke="hsl(var(--border))"
           strokeWidth={0.5}
+          opacity={0.3}
         />
       );
     }
-
-    // Horizontal lines
-    for (let i = 0; i <= canvasHeight / gridSize; i++) {
+    
+    for (let i = 0; i <= height; i += gridSize) {
       lines.push(
         <Line
           key={`h-${i}`}
-          points={[0, i * gridSize, canvasWidth, i * gridSize]}
-          stroke="hsl(var(--canvas-grid))"
+          points={[0, i, width, i]}
+          stroke="hsl(var(--border))"
           strokeWidth={0.5}
+          opacity={0.3}
         />
       );
     }
-
+    
     return lines;
   };
 
@@ -175,6 +195,7 @@ export const Canvas2D = ({
   return (
     <div 
       ref={setNodeRef}
+      data-id="canvas"
       className="relative w-full h-full bg-canvas-bg border border-border rounded-lg overflow-hidden"
     >
       <Stage
@@ -189,24 +210,28 @@ export const Canvas2D = ({
         scaleY={stageScale}
       >
         <Layer>
-          {/* Grid */}
-          {generateGrid()}
+          {/* Background image */}
+          {backgroundImage && (
+            <BackgroundImage src={backgroundImage} width={width} height={height} />
+          )}
           
-          {/* Elements */}
+          {generateGrid()}
           {elements.map(renderElement)}
           
           {/* Selection indicator */}
           {selectedId && (() => {
-            const selected = elements.find(el => el.id === selectedId);
-            if (!selected) return null;
+            const selectedElement = elements.find(el => el.id === selectedId);
+            if (!selectedElement) return null;
+            
             return (
               <Circle
-                x={selected.x + selected.width / 2}
-                y={selected.y + selected.height / 2}
-                radius={6}
-                fill="hsl(var(--selection-color))"
+                x={selectedElement.x + selectedElement.width / 2}
+                y={selectedElement.y + selectedElement.height / 2}
+                radius={8}
+                fill="hsl(var(--primary))"
                 stroke="white"
                 strokeWidth={2}
+                opacity={0.8}
               />
             );
           })()}

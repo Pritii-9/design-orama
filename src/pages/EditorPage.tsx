@@ -99,9 +99,18 @@ export default function EditorPage() {
     const furnitureData = active.data.current as FurnitureItem;
     if (!furnitureData) return;
 
-    // Calculate drop position (you might want to get the actual mouse position)
-    const x = Math.random() * (CANVAS_WIDTH - furnitureData.defaultWidth);
-    const y = Math.random() * (CANVAS_HEIGHT - furnitureData.defaultHeight);
+    // Get drop position relative to canvas
+    const canvasRect = document.querySelector('[data-id="canvas"]')?.getBoundingClientRect();
+    const dropX = event.activatorEvent ? (event.activatorEvent as PointerEvent).clientX : 0;
+    const dropY = event.activatorEvent ? (event.activatorEvent as PointerEvent).clientY : 0;
+    
+    let x = 100; // Default position
+    let y = 100;
+    
+    if (canvasRect && dropX && dropY) {
+      x = Math.max(0, Math.min(dropX - canvasRect.left - furnitureData.defaultWidth / 2, CANVAS_WIDTH - furnitureData.defaultWidth));
+      y = Math.max(0, Math.min(dropY - canvasRect.top - furnitureData.defaultHeight / 2, CANVAS_HEIGHT - furnitureData.defaultHeight));
+    }
 
     addElement({
       type: 'furniture',
@@ -246,6 +255,8 @@ export default function EditorPage() {
                   height={CANVAS_HEIGHT}
                   elements={floorPlan.elements}
                   selectedId={selectedElementId}
+                  backgroundImage={backgroundImage}
+                  showGrid={showGrid}
                   onElementSelect={setSelectedElementId}
                   onElementUpdate={updateElement}
                   onElementAdd={addElement}

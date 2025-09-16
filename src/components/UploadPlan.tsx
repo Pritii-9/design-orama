@@ -1,220 +1,185 @@
-import { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { floorPlanAPI } from '@/lib/api';
-import { Upload, FileImage, File, X } from 'lucide-react';
+import { Upload, FileImage, X, ImageIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface UploadPlanProps {
-  onImageUploaded: (imageUrl: string) => void;
+  onImageUploaded: (imageUrl: string | null) => void;
 }
 
 export const UploadPlan = ({ onImageUploaded }: UploadPlanProps) => {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const file = files[0];
-    
-    if (file && isValidFile(file)) {
-      setUploadedFile(file);
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && isValidFile(file)) {
-      setUploadedFile(file);
-    }
-  };
-
-  const isValidFile = (file: File) => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    const maxSize = 20 * 1024 * 1024; // 20MB
-
-    if (!validTypes.includes(file.type)) {
+  const handleFileSelect = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
       toast({
         title: 'Invalid file type',
-        description: 'Please upload a JPEG, PNG, WebP image or PDF file.',
+        description: 'Please upload an image file (JPG, PNG, etc.).',
         variant: 'destructive',
       });
-      return false;
+      return;
     }
 
-    if (file.size > maxSize) {
+    // Create local URL for immediate preview
+    const imageUrl = URL.createObjectURL(file);
+    setUploadedImage(imageUrl);
+    onImageUploaded(imageUrl);
+    
+    toast({
+      title: 'Image loaded',
+      description: 'Your floor plan image has been loaded as background.',
+    });
+  }, [onImageUploaded, toast]);
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       toast({
-        title: 'File too large',
-        description: 'Please upload a file smaller than 20MB.',
+        title: 'Invalid file type',
+        description: 'Please upload an image or PDF file.',
         variant: 'destructive',
       });
-      return false;
+      return;
     }
-
-    return true;
-  };
-
-  const handleUpload = async () => {
-    if (!uploadedFile) return;
 
     setUploading(true);
     try {
-      const response = await floorPlanAPI.uploadPlan(uploadedFile);
+      // For immediate use, create local URL
+      handleFileSelect(file);
       
+      // Optionally upload to server for persistence
+      const response = await floorPlanAPI.uploadImage(file);
       if (response.success && response.imageUrl) {
-        onImageUploaded(response.imageUrl);
-        toast({
-          title: 'Upload successful',
-          description: 'Your floor plan image has been uploaded.',
-        });
-        setUploadedFile(null);
-      } else {
-        throw new Error(response.message || 'Upload failed');
+        // Could update to server URL if needed
+        // onImageUploaded(response.imageUrl);
       }
     } catch (error) {
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload file.',
-        variant: 'destructive',
-      });
+      // Local file still works even if server upload fails
+      console.warn('Server upload failed, using local file:', error);
     } finally {
       setUploading(false);
     }
-  };
+  }, [handleFileSelect, toast]);
 
-  const removeFile = () => {
-    setUploadedFile(null);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  }, [handleFileUpload]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+    // Reset input value to allow same file selection
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, [handleFileUpload]);
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  const handleClearImage = useCallback(() => {
+    if (uploadedImage) {
+      URL.revokeObjectURL(uploadedImage);
+    }
+    setUploadedImage(null);
+    onImageUploaded(null);
+    toast({
+      title: 'Background cleared',
+      description: 'Floor plan background has been removed.',
+    });
+  }, [uploadedImage, onImageUploaded, toast]);
 
   return (
-    <Card className="w-full bg-card border-border shadow-medium">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-card-foreground">
-          <Upload className="w-5 h-5" />
-          Upload Floor Plan
+    <Card className="w-full border-border bg-card shadow-soft">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium text-card-foreground flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" />
+          Background Image
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {!uploadedFile ? (
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer
-              hover:border-primary hover:bg-primary/5
-              ${isDragOver ? 'border-primary bg-primary/10' : 'border-border'}
-            `}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                <FileImage className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-lg font-medium text-card-foreground">
-                  Drop your floor plan here
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  or click to browse files
-                </p>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Supports: JPEG, PNG, WebP, PDF • Max size: 20MB
-              </div>
+      <CardContent className="p-4 pt-0">
+        {uploadedImage ? (
+          <div className="space-y-3">
+            <div className="aspect-video w-full rounded-lg overflow-hidden border border-border">
+              <img 
+                src={uploadedImage} 
+                alt="Floor plan background" 
+                className="w-full h-full object-cover"
+              />
             </div>
-          </div>
-        ) : (
-          <div className="border border-border rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
-                  <File className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-card-foreground text-sm">
-                    {uploadedFile.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatFileSize(uploadedFile.size)}
-                  </p>
-                </div>
-              </div>
+            <div className="flex gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={removeFile}
-                className="text-muted-foreground hover:text-destructive"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1"
+              >
+                <Upload className="w-4 h-4 mr-1" />
+                Replace
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearImage}
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
-        )}
-
-        <Input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-
-        {uploadedFile && (
-          <div className="flex gap-2">
-            <Button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="flex-1"
-            >
-              {uploading ? 'Uploading...' : 'Upload & Use as Background'}
-            </Button>
+        ) : (
+          <div
+            className={cn(
+              "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
+              dragOver
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50"
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <FileImage className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-card-foreground mb-1">
+              Upload Floor Plan
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Drag & drop or click to upload
+            </p>
+            
             <Button
               variant="outline"
-              onClick={removeFile}
+              size="sm"
               disabled={uploading}
             >
-              Cancel
+              <Upload className="w-4 h-4 mr-1" />
+              {uploading ? 'Loading...' : 'Choose Image'}
             </Button>
           </div>
         )}
-
-        <div className="text-xs text-muted-foreground">
-          <p className="font-medium mb-1">Tips:</p>
-          <ul className="space-y-1 list-disc list-inside">
-            <li>Upload architectural drawings or sketches</li>
-            <li>Use as a background to trace over</li>
-            <li>Higher resolution images work better</li>
-          </ul>
-        </div>
+        
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileInput}
+          className="hidden"
+        />
       </CardContent>
     </Card>
   );
